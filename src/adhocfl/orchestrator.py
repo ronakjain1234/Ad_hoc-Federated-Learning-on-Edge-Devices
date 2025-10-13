@@ -51,9 +51,9 @@ def run(cfg: Config):
 
     # Data
     if cfg.dataset.source == "leaf":
-        assert cfg.dataset.leaf_root is not None, "Please set dataset.leaf_root to your LEAF FEMNIST preprocessed folder"
+        assert cfg.dataset.leaf_root is not None, "Please set dataset.leaf_root to your LEAF CIFAR preprocessed folder"
         train_clients, test_ds = build_clients_from_leaf(cfg.dataset.leaf_root)
-        num_classes = 62
+        num_classes = 10  # CIFAR-10 has 10 classes
     else:
         # Fallback: EMNIST "byclass" via torchvision (optional dev-only)
         from torchvision import datasets, transforms
@@ -70,7 +70,7 @@ def run(cfg: Config):
             from .data.femnist import FEMNISTClientDataset
             train_clients[str(i)] = FEMNISTClientDataset(images, labels)
         test_ds = test
-        num_classes = 62
+        num_classes = 10  # CIFAR-10 has 10 classes
 
     global_model = SimpleCNN(num_classes=num_classes)
     # FedAvg rounds

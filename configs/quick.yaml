@@ -1,6 +1,6 @@
 network:
   topology: erdos_renyi
-  n_devices: 15         # ↓ devices
+  n_devices: 100         # ↓ devices
   er_probability: 0.15
   ensure_connected: true
 
@@ -13,7 +13,7 @@ battery:
   min_energy_threshold: 1
 
 training:
-  rounds: 2             # ↓ rounds
+  rounds: 10             # ↓ rounds
   clients_per_round: 5  # ↓ sampled clients
   local_epochs: 1
   batch_size: 128       # ↑ batch reduces steps (use 64 if OOM)
@@ -22,11 +22,12 @@ training:
   device: cuda           # set to cuda if you have a GPU
 
 dataset:
-  source: emnist        # TEMP while LEAF downloads; switch back to leaf once ready
+  source: leaf        # TEMP while LEAF downloads; switch back to leaf once ready
+  leaf_root: "C:/ECE_381K/leaf/data/femnist"  # ↓ local path to LEAF data
   # leaf_root: /path/to/leaf/data/femnist  # set when ready
 
 run:
   out_dir: runs
-  run_name: fast_smoke
+  run_name: fast_smoke_100_er
   notes: "Quick smoke test"
-  export_network: false  # set false to skip graph layout time on big n
+  export_network: true  # set false to skip graph layout time on big n

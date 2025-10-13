@@ -14,16 +14,22 @@ from .netstats import compute_metrics, export_tables, draw_graph
 
 def build_clients_from_leaf(leaf_root: str):
     train_clients = load_leaf_clients(leaf_root, split="train")
-    test_clients = load_leaf_clients(leaf_root, split="test")
-    # Some users exist in both; we will create a test union for evaluation (pooled test data)
-    pooled_test = None
+    test_clients  = load_leaf_clients(leaf_root, split="test")
+
+    # Pool all test shards safely by concatenation
+    import numpy as np
+    from .data.femnist import FEMNISTClientDataset
+
+    imgs, labels = [], []
     for ds in test_clients.values():
-        if pooled_test is None:
-            pooled_test = ds
-        else:
-            # naive concat
-            pooled_test.images += ds.images
-            pooled_test.labels += ds.labels
+        # ds.images: (n_i, 784), ds.labels: (n_i,)
+        imgs.append(np.asarray(ds.images))
+        labels.append(np.asarray(ds.labels))
+
+    pooled_imgs   = np.vstack(imgs) if imgs else np.zeros((0, 784), dtype=np.uint8)
+    pooled_labels = np.hstack(labels) if labels else np.zeros((0,), dtype=np.int64)
+    pooled_test   = FEMNISTClientDataset(pooled_imgs, pooled_labels)
+
     return train_clients, pooled_test
 
 def run(cfg: Config):

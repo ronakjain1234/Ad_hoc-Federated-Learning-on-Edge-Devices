@@ -1,5 +1,5 @@
 import argparse, yaml
-from adhocfl.config import Config, NetworkConfig, BatteryConfig, TrainingConfig, DatasetConfig, RunConfig
+from adhocfl.config import Config, NetworkConfig, BatteryConfig, TrainingConfig, DatasetConfig, RunConfig, DisturbanceConfig
 from adhocfl.orchestrator import run
 
 def load_config(path: str) -> Config:
@@ -11,6 +11,7 @@ def load_config(path: str) -> Config:
         training=TrainingConfig(**y.get("training", {})),
         dataset=DatasetConfig(**y.get("dataset", {})),
         run=RunConfig(**y.get("run", {})),
+        disturbances=DisturbanceConfig(**y.get("disturbances", {})),
     )
     return cfg
 

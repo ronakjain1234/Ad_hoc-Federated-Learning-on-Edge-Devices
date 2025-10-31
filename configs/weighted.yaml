@@ -1,0 +1,32 @@
+network:
+  topology: erdos_renyi
+  n_devices: 200
+  er_probability: 0.1
+  ensure_connected: true
+
+battery:
+  initial_energy: 100
+  send_cost_per_mb: 0.02
+  recv_cost_per_mb: 0.01
+  idle_cost_per_round: 0.005
+  recharge_rate: 0.25
+  min_energy_threshold: 1
+
+training:
+  rounds: 60
+  clients_per_round: 16     # fewer clients → big round-time win
+  local_epochs: 3           # enough local work to move the model
+  batch_size: 64            # ensures multiple steps/epoch for most clients
+  lr: 0.01
+  seed: 42
+  device: cuda
+
+dataset:
+  source: leaf
+  leaf_root: "C:/ECE_381K/leaf/data/femnist"
+
+run:
+  out_dir: runs
+  run_name: femnist_simplecnn_weighted_fast_eval10
+  notes: "Weighted FedAvg, eval every 10, faster rounds"
+  export_network: false

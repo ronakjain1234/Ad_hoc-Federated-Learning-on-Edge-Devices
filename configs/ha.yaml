@@ -1,0 +1,32 @@
+network:
+  topology: erdos_renyi
+  n_devices: 300            # use more distinct clients; see note below
+  er_probability: 0.1
+  ensure_connected: true
+
+battery:
+  initial_energy: 100
+  send_cost_per_mb: 0.02
+  recv_cost_per_mb: 0.01
+  idle_cost_per_round: 0.005
+  recharge_rate: 0.25
+  min_energy_threshold: 1
+
+training:
+  rounds: 120               # enough runway; you can stop early
+  clients_per_round: 100    # strong signal each round
+  local_epochs: 3           # good compute/variance tradeoff
+  batch_size: 256           # keeps the GPU busy; drop to 192/128 if OOM
+  lr: 0.02                  # SimpleCNN learns well with this on FEMNIST IID
+  seed: 42
+  device: cuda
+
+dataset:
+  source: leaf
+  leaf_root: "C:/ECE_381K/leaf/data/femnist"
+
+run:
+  out_dir: runs
+  run_name: femnist_simplecnn_iid_gpu
+  notes: "SimpleCNN + full IID, GPU, strong client participation"
+  export_network: true      # turn off viz to save time

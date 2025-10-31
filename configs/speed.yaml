@@ -1,0 +1,32 @@
+network:
+  topology: erdos_renyi
+  n_devices: 200
+  er_probability: 0.1
+  ensure_connected: true
+
+battery:
+  initial_energy: 100
+  send_cost_per_mb: 0.02
+  recv_cost_per_mb: 0.01
+  idle_cost_per_round: 0.005
+  recharge_rate: 0.25
+  min_energy_threshold: 1
+
+training:
+  rounds: 80
+  clients_per_round: 32     # ↓ fewer clients per round = big time win
+  local_epochs: 2           # ↓ fewer epochs per client
+  batch_size: 256           # ↑ bigger batches = fewer steps, better GPU use
+  lr: 0.03                  # ↑ bump LR to compensate for less compute
+  seed: 42
+  device: cuda
+
+dataset:
+  source: leaf
+  leaf_root: "C:/ECE_381K/leaf/data/femnist"
+
+run:
+  out_dir: runs
+  run_name: femnist_medium_simplecnn
+  notes: "SimpleCNN fast profile"
+  export_network: false     # OFF to avoid viz overhead every run

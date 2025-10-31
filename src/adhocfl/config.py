@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
 
 @dataclass
 class NetworkConfig:
@@ -36,8 +36,9 @@ class TrainingConfig:
 
 @dataclass
 class DatasetConfig:
-    source: str = "leaf"  # leaf | emnist (fallback via torchvision)
-    leaf_root: Optional[str] = None  # path to FEMNIST preprocessed data (contains train/test/all_data jsons)
+    source: str = "leaf"                # "leaf" | "cifar10" | "emnist" (etc.)
+    leaf_root: Optional[str] = None     # used only when source == "leaf". path to FEMNIST preprocessed data (contains train/test/all_data jsons)
+    cifar10_root: str = "./data"        # used only when source == "cifar10"
     iid_fraction: float = 0.0        # 0 = fully non-iid (LEAF native splits), 1.0 = iid shuffle (optional future)
 
 @dataclass
@@ -48,9 +49,35 @@ class RunConfig:
     export_network: bool = True
 
 @dataclass
+class DisturbanceConfig:
+    enabled: bool = False
+
+    # When to apply (before client sampling is the usual)
+    apply_before_sampling: bool = True
+
+    # Device/link availability
+    device_dropout_prob: float = 0.05        # per round probability a device is offline
+    link_dropout_prob: float = 0.02          # per round probability an edge is removed
+    throttle_bandwidth_factor: Tuple[float, float] = (0.5, 1.0)  # multiplicative range
+    latency_jitter_ms: float = 0.0           # add uniform jitter to latency in ms
+
+    # Delivery failure modes
+    packet_loss_prob: float = 0.01           # chance an uplink is dropped when "sending" the update
+    round_comm_budget_s: float = 5.0         # max allowed comm time for an uplink (straggler timeout)
+    battery_floor: float = 0.05              # if device.energy < floor -> cannot send this round
+
+    # Gateways & routing
+    gateways: Optional[List[int]] = None     # if None, auto-pick top-degree nodes (size=3)
+    max_gateway_count: int = 3               # used when gateways is None
+
+    # Reversibility (links/devices come back next round unless re-failed)
+    reset_each_round: bool = True            # simple, stateless disturbances per round
+@dataclass
 class Config:
     network: NetworkConfig = field(default_factory=NetworkConfig)
     battery: BatteryConfig = field(default_factory=BatteryConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     run: RunConfig = field(default_factory=RunConfig)
+    disturbances: DisturbanceConfig = field(default_factory=DisturbanceConfig)
+    

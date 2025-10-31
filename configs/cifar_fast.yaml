@@ -1,0 +1,32 @@
+network:
+  topology: barabasi
+  n_devices: 100
+  er_probability: 0.1
+  ensure_connected: true
+
+battery:
+  initial_energy: 100
+  send_cost_per_mb: 0.02
+  recv_cost_per_mb: 0.01
+  idle_cost_per_round: 0.005
+  recharge_rate: 0.25
+  min_energy_threshold: 1
+
+training:
+  rounds: 120
+  clients_per_round: 24
+  local_epochs: 2
+  batch_size: 96          # ensures ≥3–5 steps/epoch on most clients
+  lr: 0.065                # slightly lower with smaller batch
+  seed: 42
+  device: cuda
+
+dataset:
+  source: cifar10
+  cifar10_root: "./data"
+
+run:
+  out_dir: runs
+  run_name: cifar10_resnet20_weighted_sf
+  notes: "ResNet20 CIFAR + weighted FedAvg, label smoothing, cutout"
+  export_network: true

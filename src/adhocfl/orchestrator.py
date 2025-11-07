@@ -1,5 +1,6 @@
 import random, os, time
 from typing import List
+import numpy as np
 import torch
 torch.backends.cudnn.benchmark = True
 import json
@@ -92,8 +93,10 @@ def run(cfg: Config):
         train_clients = {}
         for i in range(cfg.network.n_devices):
             idxs = list(range(i*per_client, (i+1)*per_client))
-            images = [train[i][0].squeeze().numpy()*255 for i in idxs]
-            labels = [int(train[i][1]) for i in idxs]
+            # Convert to numpy arrays and flatten images to (n_samples, 784)
+            images_list = [train[idx][0].squeeze().numpy()*255 for idx in idxs]
+            images = np.array([img.flatten() for img in images_list])  # Shape: (n_samples, 784)
+            labels = np.array([int(train[idx][1]) for idx in idxs])
             from .data.femnist import FEMNISTClientDataset
             train_clients[str(i)] = FEMNISTClientDataset(images, labels)
         test_ds = test

@@ -6,6 +6,7 @@ network:
   # Link attribute ranges used when building the graph
   latency_ms: [5.0, 50.0]
   bandwidth_mbps: [5.0, 25.0]
+  graph_path: runs/1762526503_er_emnist_aggressive_dropout/network/adjacency.csv  # runs/<timestamp>_baseline/adjacency.csv
 
 battery:
   initial_energy: 100.0
@@ -30,7 +31,7 @@ dataset:
 
 run:
   out_dir: runs
-  run_name: er_emnist_quick
+  run_name: er_emnist_super_aggressive_dropout
   notes: "ER + EMNIST quick run with disturbances layer enabled"
   export_network: true   # set false to skip graph PNG/layout on big graphs
 
@@ -39,21 +40,21 @@ disturbances:
   apply_before_sampling: true
 
   # Availability & topology shocks
-  device_dropout_prob: 0.05
-  link_dropout_prob: 0.02
+  device_dropout_prob: 0.60     # Increased from 0.05: more devices offline per round
+  link_dropout_prob: 0.40       # Increased from 0.02: more network partitions
 
   # Performance degradation
-  throttle_bandwidth_factor: [0.6, 1.0]
-  latency_jitter_ms: 5.0
+  throttle_bandwidth_factor: [0.5, 0.8]  # Reduced from [0.6, 1.0]: severe bandwidth degradation
+  latency_jitter_ms: 20.0       # Increased from 5.0: high latency variability
 
   # Delivery failure modes
-  packet_loss_prob: 0.01
-  round_comm_budget_s: 3.0     # straggler timeout (seconds)
-  battery_floor: 0.05
+  packet_loss_prob: 0.2        # Increased from 0.01: more lost updates
+  round_comm_budget_s: 1.0      # Reduced from 3.0: stricter timeout causing more stragglers
+  battery_floor: 0.10           # Increased from 0.05: devices stop earlier due to low battery
 
   # Gateway routing (null => auto-pick top-degree nodes)
   gateways: null
   max_gateway_count: 3
 
   # Redraw disturbances each round (stateless)
-  reset_each_round: true
+  reset_each_round: false

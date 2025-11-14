@@ -31,6 +31,50 @@ class SimNetwork:
         self._gateways: List[int] = []
 
     def _build_graph(self):
+        if self.cfg.graph_path:
+            import pandas as pd
+
+            # Load adjacency matrix exported from a previous run.
+            # Typically produced by networkx.to_pandas_adjacency(G).
+            A = pd.read_csv(self.cfg.graph_path, index_col=0)
+
+            # Many writers save index as ints and columns as strings (or vice versa).
+            # Normalize both to ints when possible so they align.
+            try:
+                A.index = A.index.astype(int)
+            except ValueError:
+                # If this fails, we just leave them as-is.
+                pass
+
+            try:
+                A.columns = A.columns.astype(int)
+            except ValueError:
+                pass
+
+            # Now they must match for from_pandas_adjacency to work.
+            if not A.index.equals(A.columns):
+                raise ValueError(
+                    "Adjacency CSV invalid: columns must match indices for from_pandas_adjacency.\n"
+                    f"First few index:   {list(A.index)[:5]}\n"
+                    f"First few columns: {list(A.columns)[:5]}"
+                )
+
+            # Reconstruct the graph topology exactly from the adjacency matrix.
+            G = nx.from_pandas_adjacency(A)
+
+            # Sanity check: ensure expected number of devices.
+            if self.cfg.n_devices is not None and G.number_of_nodes() != self.cfg.n_devices:
+                raise ValueError(
+                    f"Loaded graph has {G.number_of_nodes()} nodes but n_devices={self.cfg.n_devices}"
+                )
+
+            # Assign link attributes EXACTLY as in your original code.
+            for u, v in G.edges():
+                G.edges[u, v]["latency_ms"] = self.rng.uniform(*self.cfg.latency_ms)
+                G.edges[u, v]["bandwidth_mbps"] = self.rng.uniform(*self.cfg.bandwidth_mbps)
+
+            return G
+        
         n = self.cfg.n_devices
         if self.cfg.topology == "erdos_renyi":
             G = nx.erdos_renyi_graph(n, self.cfg.er_probability, seed=self.rng.randrange(1<<30))

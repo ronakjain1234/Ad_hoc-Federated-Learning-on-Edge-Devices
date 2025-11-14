@@ -14,6 +14,7 @@ class NetworkConfig:
     bandwidth_mbps: Tuple[float, float] = (5.0, 20.0)
     device_dropout_prob: float = 0.0       # baseline: 0 (no abnormalities)
     link_dropout_prob: float = 0.0         # baseline: 0 (no abnormalities)
+    graph_path: Optional[str] = None
 
 @dataclass
 class BatteryConfig:

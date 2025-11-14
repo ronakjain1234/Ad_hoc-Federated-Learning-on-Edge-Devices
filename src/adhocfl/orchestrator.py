@@ -88,17 +88,53 @@ def run(cfg: Config):
         transform = transforms.Compose([transforms.ToTensor()])
         train = datasets.EMNIST(root="./data", split="byclass", train=True, download=True, transform=transform)
         test = datasets.EMNIST(root="./data", split="byclass", train=False, download=True, transform=transform)
-        # Partition EMNIST into pseudo-clients evenly
+        
+        # Partition EMNIST into pseudo-clients
         per_client = len(train) // cfg.network.n_devices
         train_clients = {}
-        for i in range(cfg.network.n_devices):
-            idxs = list(range(i*per_client, (i+1)*per_client))
-            # Convert to numpy arrays and flatten images to (n_samples, 784)
-            images_list = [train[idx][0].squeeze().numpy()*255 for idx in idxs]
-            images = np.array([img.flatten() for img in images_list])  # Shape: (n_samples, 784)
-            labels = np.array([int(train[idx][1]) for idx in idxs])
-            from .data.femnist import FEMNISTClientDataset
-            train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+        
+        if cfg.dataset.emnist_iid:
+            # IID: Sequential split (same label distribution across clients)
+            for i in range(cfg.network.n_devices):
+                idxs = list(range(i*per_client, (i+1)*per_client))
+                # Convert to numpy arrays and flatten images to (n_samples, 784)
+                images_list = [train[idx][0].squeeze().numpy()*255 for idx in idxs]
+                images = np.array([img.flatten() for img in images_list])  # Shape: (n_samples, 784)
+                labels = np.array([int(train[idx][1]) for idx in idxs])
+                from .data.femnist import FEMNISTClientDataset
+                train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+        else:
+            # Non-IID: Grouped by label (each client gets one or few specific classes)
+            # Sort by label to group samples by class
+            train_data = [(train[i][0].squeeze().numpy()*255, int(train[i][1])) for i in range(len(train))]
+            train_data.sort(key=lambda x: x[1])  # Sort by label
+            
+            num_classes = 62
+            classes_per_client = max(1, num_classes // cfg.network.n_devices)
+            samples_per_client = len(train) // cfg.network.n_devices
+            
+            client_idx = 0
+            samples_assigned = 0
+            
+            for i in range(cfg.network.n_devices):
+                images_list = []
+                labels_list = []
+                
+                # Assign samples for this client
+                target_samples = min(samples_per_client, len(train_data) - samples_assigned)
+                for _ in range(target_samples):
+                    if samples_assigned < len(train_data):
+                        img, label = train_data[samples_assigned]
+                        images_list.append(img)
+                        labels_list.append(label)
+                        samples_assigned += 1
+                
+                if images_list:
+                    images = np.array([img.flatten() for img in images_list])
+                    labels = np.array(labels_list)
+                    from .data.femnist import FEMNISTClientDataset
+                    train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+        
         test_ds = test
         num_classes = 62
         global_model = SimpleCNN(num_classes=num_classes)

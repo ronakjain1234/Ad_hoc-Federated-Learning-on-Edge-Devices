@@ -16,40 +16,41 @@ battery:
   min_energy_threshold: 1.0
 
 training:
-  rounds: 10            # quick run
+  rounds: 10 # quick run
   clients_per_round: 15 # modest client count for speed
   local_epochs: 1
   batch_size: 64
   lr: 0.01
   seed: 42
-  device: cuda   # or "cpu"
+  device: cuda # or "cpu"
 
 dataset:
-  source: emnist       # triggers torchvision EMNIST fallback in orchestrator
+  source: emnist # triggers torchvision EMNIST fallback in orchestrator
   # leaf_root not needed for EMNIST
+  emnist_iid: false # Toggle between non-IID (false) and IID (true) data distribution
 
 run:
   out_dir: runs
   run_name: er_emnist_quick
   notes: "ER + EMNIST quick run with disturbances layer enabled"
-  export_network: true   # set false to skip graph PNG/layout on big graphs
+  export_network: true # set false to skip graph PNG/layout on big graphs
 
 disturbances:
-  enabled: true                 # set to false for pure baseline
+  enabled: true # set to false for pure baseline
   apply_before_sampling: true
 
   # Availability & topology shocks
-  device_dropout_prob: 0.20     # Increased from 0.05: more devices offline per round
-  link_dropout_prob: 0.12       # Increased from 0.02: more network partitions
+  device_dropout_prob: 0.20 # Increased from 0.05: more devices offline per round
+  link_dropout_prob: 0.12 # Increased from 0.02: more network partitions
 
   # Performance degradation
-  throttle_bandwidth_factor: [0.2, 0.5]  # Reduced from [0.6, 1.0]: severe bandwidth degradation
-  latency_jitter_ms: 30.0       # Increased from 5.0: high latency variability
+  throttle_bandwidth_factor: [0.2, 0.5] # Reduced from [0.6, 1.0]: severe bandwidth degradation
+  latency_jitter_ms: 30.0 # Increased from 5.0: high latency variability
 
   # Delivery failure modes
-  packet_loss_prob: 0.08        # Increased from 0.01: more lost updates
-  round_comm_budget_s: 1.2      # Reduced from 3.0: stricter timeout causing more stragglers
-  battery_floor: 0.15           # Increased from 0.05: devices stop earlier due to low battery
+  packet_loss_prob: 0.08 # Increased from 0.01: more lost updates
+  round_comm_budget_s: 1.2 # Reduced from 3.0: stricter timeout causing more stragglers
+  battery_floor: 0.15 # Increased from 0.05: devices stop earlier due to low battery
 
   # Gateway routing (null => auto-pick top-degree nodes)
   gateways: null

@@ -166,9 +166,14 @@ def run(cfg: Config):
 
             if cfg.disturbances.enabled:
                 for cid in delivered_ids:
-                    path, t_s = net.shortest_gateway_path_and_time(
-                        source=cid, gateways=None, bytes_to_send=bytes_down
-                    )
+                    if cfg.disturbances.routing_mode == "naive":
+                        path, t_s = net.shortest_gateway_path_naive(
+                            source=cid, gateways=None, bytes_to_send=bytes_down
+                        )
+                    else:
+                        path, t_s = net.shortest_gateway_path_and_time(
+                            source=cid, gateways=None, bytes_to_send=bytes_down
+                        )
                     if path is not None:
                         downlink_time_s += t_s
 

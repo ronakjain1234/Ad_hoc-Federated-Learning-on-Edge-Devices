@@ -96,12 +96,19 @@ class DisturbanceManager:
         if dev is not None and dev.energy < self.cfg.battery_floor:
             return (False, None, 0.0, "low_battery")
 
-        # Path to nearest gateway
-        path, comm_time_s = self.net.shortest_gateway_path_and_time(
-            source=client_id,
-            gateways=self.gateways,
-            bytes_to_send=payload_bytes,
-        )
+        # Path to nearest gateway (use naive BFS or dynamic weighted routing)
+        if self.cfg.routing_mode == "naive":
+            path, comm_time_s = self.net.shortest_gateway_path_naive(
+                source=client_id,
+                gateways=self.gateways,
+                bytes_to_send=payload_bytes,
+            )
+        else:
+            path, comm_time_s = self.net.shortest_gateway_path_and_time(
+                source=client_id,
+                gateways=self.gateways,
+                bytes_to_send=payload_bytes,
+            )
         if path is None:
             return (False, None, 0.0, "partition")
 

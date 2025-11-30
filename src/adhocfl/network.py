@@ -169,6 +169,68 @@ class SimNetwork:
         serialize_s = payload_bytes / (bw * 125_000.0)  # 1 Mbps = 125,000 bytes/s
         return (lat_ms / 1000.0) + serialize_s
 
+    def shortest_gateway_path_naive(
+        self,
+        source: int,
+        gateways: Optional[List[int]],
+        bytes_to_send: int,
+    ) -> Tuple[Optional[List[int]], float]:
+        """
+        Naive BFS-based shortest path (by hop count) from source to any gateway.
+        Uses original graph without removing edges/nodes, but checks if path contains
+        offline nodes or down edges. Returns (path, num_hops). If unreachable, returns (None, 0.0).
+        """
+        # Use original graph (don't remove edges/nodes)
+        G = self.graph
+        if source not in G:
+            return (None, 0.0)
+
+        targets = list(gateways or self._gateways)
+        targets = [g for g in targets if g in G]
+        if not targets:
+            return (None, 0.0)
+
+        # BFS to find shortest valid path by hop count
+        # Try all gateways and find the shortest valid path
+        best_path: Optional[List[int]] = None
+        best_hops = float("inf")
+        
+        for g in targets:
+            try:
+                # Use BFS (unweighted shortest path)
+                path = nx.shortest_path(G, source=source, target=g)
+                hops = len(path) - 1
+                
+                # Only consider if this is potentially better (shorter or equal)
+                if hops <= best_hops:
+                    # Check if path contains any offline nodes or down edges
+                    path_valid = True
+                    for i in range(len(path)):
+                        node = path[i]
+                        # Check if node is offline
+                        if not self.is_device_online(node):
+                            path_valid = False
+                            break
+                        # Check if edge is down (for edges in path)
+                        if i < len(path) - 1:
+                            u, v = path[i], path[i+1]
+                            edge_tuple = tuple(sorted((u, v)))
+                            if edge_tuple in self._down_edges:
+                                path_valid = False
+                                break
+                    
+                    # If path is valid and shorter (or equal but first found), use it
+                    if path_valid and hops < best_hops:
+                        best_hops = hops
+                        best_path = path
+            except nx.NetworkXNoPath:
+                continue
+
+        if best_path is None:
+            return (None, 0.0)
+        # Return path and number of hops (as "time" for compatibility)
+        return (best_path, float(best_hops))
+
     def shortest_gateway_path_and_time(
         self,
         source: int,

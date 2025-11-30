@@ -70,6 +70,7 @@ class DisturbanceConfig:
     # Gateways & routing
     gateways: Optional[List[int]] = None     # if None, auto-pick top-degree nodes (size=3)
     max_gateway_count: int = 3               # used when gateways is None
+    routing_mode: str = "dynamic"            # "dynamic" (weighted Dijkstra) or "naive" (BFS hop count)
 
     # Reversibility (links/devices come back next round unless re-failed)
     reset_each_round: bool = True            # simple, stateless disturbances per round

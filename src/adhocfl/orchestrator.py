@@ -87,17 +87,56 @@ def run(cfg: Config):
         transform = transforms.Compose([transforms.ToTensor()])
         train = datasets.EMNIST(root="./data", split="byclass", train=True, download=True, transform=transform)
         test = datasets.EMNIST(root="./data", split="byclass", train=False, download=True, transform=transform)
-        # Partition EMNIST into pseudo-clients evenly
-        per_client = len(train) // cfg.network.n_devices
+        
+        from .data.femnist import FEMNISTClientDataset
         train_clients = {}
-        for i in range(cfg.network.n_devices):
-            idxs = list(range(i*per_client, (i+1)*per_client))
-            images = [train[i][0].squeeze().numpy()*255 for i in idxs]
-            labels = [int(train[i][1]) for i in idxs]
-            from .data.femnist import FEMNISTClientDataset
-            train_clients[str(i)] = FEMNISTClientDataset(images, labels)
-        test_ds = test
         num_classes = 62
+        
+        if cfg.dataset.non_iid:
+            # Non-IID: Each client gets a subset of classes (2-3 classes per client)
+            # Group data by class first
+            class_data = {c: [] for c in range(num_classes)}
+            for idx in range(len(train)):
+                _, label = train[idx]
+                class_data[int(label)].append(idx)
+            
+            # Assign classes to clients (each client gets ~2-3 classes)
+            classes_per_client = max(2, num_classes // cfg.network.n_devices)
+            client_classes = {}
+            all_classes = list(range(num_classes))
+            rng.shuffle(all_classes)
+            
+            for i in range(cfg.network.n_devices):
+                # Assign classes to this client
+                start_idx = (i * classes_per_client) % len(all_classes)
+                end_idx = min(start_idx + classes_per_client, len(all_classes))
+                if end_idx <= start_idx:
+                    # Wrap around if needed
+                    client_classes[i] = all_classes[start_idx:] + all_classes[:end_idx]
+                else:
+                    client_classes[i] = all_classes[start_idx:end_idx]
+            
+            # Distribute data to clients based on assigned classes
+            for i in range(cfg.network.n_devices):
+                client_indices = []
+                for class_id in client_classes[i]:
+                    client_indices.extend(class_data[class_id])
+                
+                # Shuffle to mix samples from different classes
+                rng.shuffle(client_indices)
+                images = [train[idx][0].squeeze().numpy()*255 for idx in client_indices]
+                labels = [int(train[idx][1]) for idx in client_indices]
+                train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+        else:
+            # IID: Partition EMNIST into pseudo-clients evenly
+            per_client = len(train) // cfg.network.n_devices
+            for i in range(cfg.network.n_devices):
+                idxs = list(range(i*per_client, (i+1)*per_client))
+                images = [train[idx][0].squeeze().numpy()*255 for idx in idxs]
+                labels = [int(train[idx][1]) for idx in idxs]
+                train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+        
+        test_ds = test
         global_model = SimpleCNN(num_classes=num_classes)
 
     # FedAvg rounds

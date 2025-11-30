@@ -41,6 +41,7 @@ class DatasetConfig:
     leaf_root: Optional[str] = None     # used only when source == "leaf". path to FEMNIST preprocessed data (contains train/test/all_data jsons)
     cifar10_root: str = "./data"        # used only when source == "cifar10"
     iid_fraction: float = 0.0        # 0 = fully non-iid (LEAF native splits), 1.0 = iid shuffle (optional future)
+    non_iid: bool = False               # For EMNIST: if True, each client gets subset of classes (Non-IID), if False, data is evenly distributed (IID)
 
 @dataclass
 class RunConfig:

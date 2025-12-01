@@ -93,39 +93,56 @@ def run(cfg: Config):
         num_classes = 62
         
         if cfg.dataset.non_iid:
-            # Non-IID: Each client gets a subset of classes (2-3 classes per client)
-            # Group data by class first
+            import numpy as np
+            np.random.seed(cfg.training.seed)
+            # Dirichlet non-IID over EMNIST "byclass"
+            # - Each class's samples are distributed to clients according to
+            #   a Dirichlet(alpha) draw.
+            # - Each sample lives on exactly ONE client.
+            # - alpha < 1 => more skewed; alpha > 1 => closer to IID.
+
+            n_clients = cfg.network.n_devices
+            # Make this configurable later if you want: cfg.dataset.dirichlet_alpha
+            alpha = getattr(cfg.dataset, "dirichlet_alpha", cfg.dataset.dirichlet_alpha)
+
+            # 1) Group data indices by class
             class_data = {c: [] for c in range(num_classes)}
             for idx in range(len(train)):
                 _, label = train[idx]
                 class_data[int(label)].append(idx)
-            
-            # Assign classes to clients (each client gets ~2-3 classes)
-            classes_per_client = max(2, num_classes // cfg.network.n_devices)
-            client_classes = {}
-            all_classes = list(range(num_classes))
-            rng.shuffle(all_classes)
-            
-            for i in range(cfg.network.n_devices):
-                # Assign classes to this client
-                start_idx = (i * classes_per_client) % len(all_classes)
-                end_idx = min(start_idx + classes_per_client, len(all_classes))
-                if end_idx <= start_idx:
-                    # Wrap around if needed
-                    client_classes[i] = all_classes[start_idx:] + all_classes[:end_idx]
-                else:
-                    client_classes[i] = all_classes[start_idx:end_idx]
-            
-            # Distribute data to clients based on assigned classes
-            for i in range(cfg.network.n_devices):
-                client_indices = []
-                for class_id in client_classes[i]:
-                    client_indices.extend(class_data[class_id])
-                
-                # Shuffle to mix samples from different classes
-                rng.shuffle(client_indices)
-                images = [train[idx][0].squeeze().numpy()*255 for idx in client_indices]
-                labels = [int(train[idx][1]) for idx in client_indices]
+
+            # 2) For each class, sample a Dirichlet distribution over clients
+            #    and split that class's samples according to those proportions.
+            client_indices = {i: [] for i in range(n_clients)}
+
+            for class_id, idxs in class_data.items():
+                if not idxs:
+                    continue
+
+                idxs_copy = list(idxs)
+                rng.shuffle(idxs_copy)
+
+                # Dirichlet over clients
+                # shape: (n_clients,)
+                probs = np.random.dirichlet(alpha * np.ones(n_clients))
+
+                # Multinomial draw: how many samples of this class per client
+                counts = np.random.multinomial(len(idxs_copy), probs)
+
+                start = 0
+                for client_id, count in enumerate(counts):
+                    if count == 0:
+                        continue
+                    end = start + count
+                    client_indices[client_id].extend(idxs_copy[start:end])
+                    start = end
+
+            # 3) Build per-client datasets
+            for i in range(n_clients):
+                idxs = client_indices[i]
+                rng.shuffle(idxs)
+                images = [train[idx][0].squeeze().numpy() * 255 for idx in idxs]
+                labels = [int(train[idx][1]) for idx in idxs]
                 train_clients[str(i)] = FEMNISTClientDataset(images, labels)
         else:
             # IID: Partition EMNIST into pseudo-clients evenly

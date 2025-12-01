@@ -18,7 +18,7 @@ battery:
 
 training:
   rounds: 10            # quick run
-  clients_per_round: 15 # modest client count for speed
+  clients_per_round: 40 # modest client count for speed
   local_epochs: 1
   batch_size: 64
   lr: 0.01
@@ -28,10 +28,12 @@ training:
 dataset:
   source: emnist       # triggers torchvision EMNIST fallback in orchestrator
   # leaf_root not needed for EMNIST
+  non_iid: True       # set to false for IID data distribution across clients
+  dirichlet_alpha: 0.1  # concentration parameter for Dirichlet non-IID splits
 
 run:
   out_dir: runs
-  run_name: er_emnist_super_aggressive_dropout
+  run_name: m3_static_test_10
   notes: "ER + EMNIST quick run with disturbances layer enabled"
   export_network: true   # set false to skip graph PNG/layout on big graphs
 
@@ -40,21 +42,23 @@ disturbances:
   apply_before_sampling: true
 
   # Availability & topology shocks
-  device_dropout_prob: 0.60     # Increased from 0.05: more devices offline per round
-  link_dropout_prob: 0.40       # Increased from 0.02: more network partitions
+  device_dropout_prob: 0.35     # Increased from 0.05: more devices offline per round
+  link_dropout_prob: 0.25      # Increased from 0.02: more network partitions
 
   # Performance degradation
   throttle_bandwidth_factor: [0.5, 0.8]  # Reduced from [0.6, 1.0]: severe bandwidth degradation
   latency_jitter_ms: 20.0       # Increased from 5.0: high latency variability
 
   # Delivery failure modes
-  packet_loss_prob: 0.2        # Increased from 0.01: more lost updates
-  round_comm_budget_s: 1.0      # Reduced from 3.0: stricter timeout causing more stragglers
+  packet_loss_prob: 0.1        # Increased from 0.01: more lost updates
+  round_comm_budget_s: 10.0      # Reduced from 3.0: stricter timeout causing more stragglers
   battery_floor: 0.10           # Increased from 0.05: devices stop earlier due to low battery
 
   # Gateway routing (null => auto-pick top-degree nodes)
   gateways: null
   max_gateway_count: 3
 
+  routing_mode: "static"
+
   # Redraw disturbances each round (stateless)
-  reset_each_round: false
+  reset_each_round: true

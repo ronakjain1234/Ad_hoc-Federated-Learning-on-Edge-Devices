@@ -1,0 +1,3 @@
+round,selected_clients,delivered_clients,dropped_offline,dropped_low_battery,dropped_partition,dropped_packet_loss,dropped_timeout,bytes_sent,bytes_received,uplink_time_s,downlink_time_s
+1,15,12,0,0,0,3,0,20560800,20560800,30.90262415218971,30.90262415218971
+2,15,13,0,0,1,1,0,22274200,22274200,23.12836485484896,23.12836485484896

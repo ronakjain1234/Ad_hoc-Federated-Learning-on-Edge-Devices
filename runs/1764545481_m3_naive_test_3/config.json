@@ -1,0 +1,70 @@
+{
+  "network": {
+    "topology": "erdos_renyi",
+    "n_devices": 100,
+    "er_probability": 0.1,
+    "ba_m": 2,
+    "ws_k": 4,
+    "ws_p": 0.05,
+    "ensure_connected": true,
+    "latency_ms": [
+      5.0,
+      50.0
+    ],
+    "bandwidth_mbps": [
+      5.0,
+      25.0
+    ],
+    "device_dropout_prob": 0.0,
+    "link_dropout_prob": 0.0,
+    "graph_path": "runs/1762526503_er_emnist_aggressive_dropout/network/adjacency.csv"
+  },
+  "battery": {
+    "initial_energy": 100.0,
+    "send_cost_per_mb": 0.02,
+    "recv_cost_per_mb": 0.01,
+    "idle_cost_per_round": 0.005,
+    "recharge_rate": 0.25,
+    "min_energy_threshold": 1.0
+  },
+  "training": {
+    "rounds": 10,
+    "clients_per_round": 15,
+    "local_epochs": 1,
+    "batch_size": 64,
+    "lr": 0.01,
+    "seed": 42,
+    "device": "cuda"
+  },
+  "dataset": {
+    "source": "emnist",
+    "leaf_root": null,
+    "cifar10_root": "./data",
+    "iid_fraction": 0.0,
+    "non_iid": true
+  },
+  "run": {
+    "out_dir": "runs",
+    "run_name": "m3_naive_test_3",
+    "notes": "ER + EMNIST quick run with disturbances layer enabled",
+    "export_network": true
+  },
+  "disturbances": {
+    "enabled": true,
+    "apply_before_sampling": true,
+    "device_dropout_prob": 0.3,
+    "link_dropout_prob": 0.1,
+    "throttle_bandwidth_factor": [
+      0.5,
+      0.8
+    ],
+    "latency_jitter_ms": 20.0,
+    "packet_loss_prob": 0.1,
+    "round_comm_budget_s": 10.0,
+    "battery_floor": 0.1,
+    "gateways": null,
+    "max_gateway_count": 3,
+    "routing_mode": "naive",
+    "reset_each_round": true
+  }
+}

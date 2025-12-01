@@ -1,0 +1,14 @@
+{
+  "nodes": 100,
+  "edges": 478,
+  "avg_degree": 9.56,
+  "density": 0.09656565656565656,
+  "connected": true,
+  "num_components": 1,
+  "lcc_size": 100,
+  "avg_path_length_lcc": 2.261010101010101,
+  "diameter_lcc": 4,
+  "avg_clustering": 0.0940668318609495,
+  "transitivity": 0.09544851966416261,
+  "assortativity_degree": -0.0695269322019544
+}

@@ -8,7 +8,6 @@ from .config import Config, NetworkConfig, BatteryConfig, TrainingConfig, Datase
 from .network import SimNetwork
 from .models.cnn import SimpleCNN
 from .models.cnn_plus import CNNPlus
-from .data.femnist import load_leaf_clients, FEMNISTClientDataset
 from .fedavg import fedavg, train_one_client, evaluate, weighted_fedavg
 from .metrics import MetricsLogger
 from .netstats import compute_metrics, export_tables, draw_graph
@@ -47,27 +46,6 @@ class EMNISTClientDataset(Dataset):
         return img, label
 
 
-
-def build_clients_from_leaf(leaf_root: str):
-    train_clients = load_leaf_clients(leaf_root, split="train")
-    test_clients  = load_leaf_clients(leaf_root, split="test")
-
-    # Pool all test shards safely by concatenation
-    import numpy as np
-    from .data.femnist import FEMNISTClientDataset
-
-    imgs, labels = [], []
-    for ds in test_clients.values():
-        # ds.images: (n_i, 784), ds.labels: (n_i,)
-        imgs.append(np.asarray(ds.images))
-        labels.append(np.asarray(ds.labels))
-
-    pooled_imgs   = np.vstack(imgs) if imgs else np.zeros((0, 784), dtype=np.uint8)
-    pooled_labels = np.hstack(labels) if labels else np.zeros((0,), dtype=np.int64)
-    pooled_test   = FEMNISTClientDataset(pooled_imgs, pooled_labels)
-
-    return train_clients, pooled_test
-
 def run(cfg: Config):
     rng = random.Random(cfg.training.seed)
     device = torch.device(cfg.training.device if torch.cuda.is_available() and cfg.training.device == "cuda" else "cpu")
@@ -94,12 +72,7 @@ def run(cfg: Config):
     })
 
     # Data
-    if cfg.dataset.source == "leaf":
-        assert cfg.dataset.leaf_root is not None, "Please set dataset.leaf_root to your LEAF FEMNIST preprocessed folder"
-        train_clients, test_ds = build_clients_from_leaf(cfg.dataset.leaf_root)
-        num_classes = 62
-        global_model = SimpleCNN(num_classes=num_classes)
-    elif cfg.dataset.source == "cifar10":
+    if cfg.dataset.source == "cifar10":
         # Use n_devices to define how many clients to create so mapping stays 1:1
         cifar_root = getattr(cfg.dataset, "cifar10_root", "./data")
         train_clients, test_ds = load_cifar10_clients(

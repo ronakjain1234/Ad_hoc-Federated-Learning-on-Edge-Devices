@@ -1,28 +1,50 @@
-# Ad-Hoc FL Baseline (FedAvg on FEMNIST)
+# Cost-Aware Dynamic Rerouting for Resilient Federated Learning
 
-A minimal, modular baseline to simulate a network of edge devices, train FedAvg on FEMNIST (LEAF), and record metrics. Designed to be easily extended with dropouts, link failures, and battery logic.
+## Project Overview
+This project simulates a Federated Learning (FL) system operating over an ad-hoc edge network. It models physical layer disturbances—such as node dropouts, link failures, and battery depletion—and evaluates a proposed "Cost-Aware Dynamic Rerouting" strategy against a standard Naive baseline.
 
-## Quickstart
-```bash
-python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-# Set dataset.leaf_root in configs/baseline.yaml to your LEAF FEMNIST 'preprocess' output folder
-python scripts/run_baseline.py --config configs/baseline.yaml
-```
-Outputs will be under `runs/<timestamp>_baseline_femnist/` with `train_metrics.csv`, `eval_metrics.csv`, and `config.json`.
+## Project Structure
+adhocfl-baseline/
+├── configs/               # Experiment configurations (YAML)
+│   ├── baseline.yaml      # Standard FL without disturbances
+│   └── disturbances.yaml  # Main config for disturbances & recovery experiments
+├── scripts/
+│   └── run_baseline.py    # Main entry point script
+├── src/adhocfl/           # Core source code
+│   ├── orchestrator.py    # Main FL loop (training, sampling, aggregation)
+│   ├── network.py         # Graph topology, routing logic, and smart sampling
+│   ├── disturbances.py    # Failure injection (dropouts, throttling)
+│   ├── device.py          # Battery and energy accounting
+│   ├── fedavg.py          # FL aggregation and local training
+│   └── metrics.py         # Logging and metrics collection
+└── data/                  # Dataset storage (CIFAR-10, EMNIST, LEAF)
 
-## Structure
-- `src/adhocfl/config.py` – dataclasses for all configs
-- `src/adhocfl/device.py` – simple device + accounting
-- `src/adhocfl/network.py` – topology builder (NetworkX)
-- `src/adhocfl/models/cnn.py` – small CNN for 1x28x28
-- `src/adhocfl/data/femnist.py` – loader for LEAF FEMNIST client splits
-- `src/adhocfl/fedavg.py` – client train + FedAvg + eval
-- `src/adhocfl/orchestrator.py` – end-to-end training loop, metrics
-- `configs/baseline.yaml` – tune all knobs here
-- `scripts/run_baseline.py` – CLI entry point
+## Setup & Requirements
+- Python 3.8+
+- Dependencies:
+  pip install torch torchvision networkx numpy pandas pyyaml
 
-## Notes
-- Baseline intentionally sets all dropout probabilities to 0 (clean run).
-- Energy + bytes are accounted per-device so disturbances can later toggle via config.
-- If you don't have LEAF ready, set `dataset.source: emnist` to use a torchvision fallback for local smoke tests.
+## How to Run
+
+1. Basic Execution
+   To run the simulation with the default disturbance configuration:
+   python scripts/run_baseline.py --config configs/disturbances.yaml
+
+2. Experiment Modes (Comparison)
+   To compare the Naive baseline vs. the Dynamic recovery strategy, modify the `routing_mode` in `configs/disturbances.yaml`:
+
+   a. Naive Mode (Baseline):
+      - Uses static shortest-path routing (BFS).
+      - Fails immediately if the path contains offline nodes or down links.
+      - Uses random client sampling.
+      Set: routing_mode: "naive"
+
+   b. Dynamic Mode (Proposed Solution):
+      - Uses cost-aware routing (Dijkstra) on the active graph to bypass failures.
+      - Enables "Smart Sampling" to prioritize high-battery clients.
+      Set: routing_mode: "dynamic"
+
+## Outputs
+Results are saved to the `runs/` directory (timestamped folders).
+- eval_metrics.csv: Contains the Test Accuracy per round.
+- Console Output: Displays real-time progress and accuracy.

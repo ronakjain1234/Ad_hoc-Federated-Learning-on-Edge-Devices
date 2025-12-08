@@ -16,6 +16,36 @@ from .netstats import compute_metrics, export_tables, draw_graph
 from .data.cifar10 import load_cifar10_clients
 from .models.cnn_cifar import CIFAR10Small, CIFAR10LiteRes, ResNet20CIFAR
 from .disturbances import DisturbanceManager
+from .device import Message
+import numpy as np
+from torch.utils.data import Dataset
+
+class EMNISTClientDataset(Dataset):
+    """
+    Simple per-client dataset wrapper for EMNIST.
+    Expects 28x28 uint8 images and integer labels.
+    """
+    def __init__(self, images, labels):
+        # images: list/array of (28,28) or (784,) uint8
+        # labels: list/array of ints
+        self.images = np.array(images, dtype=np.uint8)
+        self.labels = np.array(labels, dtype=np.int64)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        img = self.images[idx]
+
+        # If flattened (784), reshape to (28, 28)
+        if img.ndim == 1:
+            img = img.reshape(28, 28)
+
+        # Convert to float32 [0,1] and to tensor [1, 28, 28]
+        img = torch.from_numpy(img.astype(np.float32) / 255.0).unsqueeze(0)
+        label = int(self.labels[idx])
+        return img, label
+
 
 
 def build_clients_from_leaf(leaf_root: str):
@@ -143,7 +173,7 @@ def run(cfg: Config):
                 rng.shuffle(idxs)
                 images = [train[idx][0].squeeze().numpy() * 255 for idx in idxs]
                 labels = [int(train[idx][1]) for idx in idxs]
-                train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+                train_clients[str(i)] = EMNISTClientDataset(images, labels)
         else:
             # IID: Partition EMNIST into pseudo-clients evenly
             per_client = len(train) // cfg.network.n_devices
@@ -151,7 +181,7 @@ def run(cfg: Config):
                 idxs = list(range(i*per_client, (i+1)*per_client))
                 images = [train[idx][0].squeeze().numpy()*255 for idx in idxs]
                 labels = [int(train[idx][1]) for idx in idxs]
-                train_clients[str(i)] = FEMNISTClientDataset(images, labels)
+                train_clients[str(i)] = EMNISTClientDataset(images, labels)
         
         test_ds = test
         global_model = SimpleCNN(num_classes=num_classes)
@@ -161,9 +191,11 @@ def run(cfg: Config):
         # 1) Apply disturbances BEFORE sampling if enabled
         if cfg.disturbances.enabled and cfg.disturbances.apply_before_sampling:
             dist.step(rnd)
+        # This couples the sampling strategy to the recovery mode as requested.
+        use_smart = (cfg.disturbances.routing_mode == "dynamic")
 
         # 2) Sample online clients (this respects ephemeral offline state)
-        selected_ids = net.sample_active_clients(cfg.training.clients_per_round)
+        selected_ids = net.sample_active_clients(cfg.training.clients_per_round, smart_sampling=use_smart)
 
         # Round accumulators
         delivered_ids: List[int] = []
@@ -204,6 +236,9 @@ def run(cfg: Config):
                 dropped[reason] = dropped.get(reason, 0) + 1
                 continue
 
+            # The device "sends" the update. Target ID -1 implies server/gateway.
+            net.devices[cid].send(to_id=-1, payload=None, size_bytes=bytes_up)
+
             # Count only delivered uplinks (simple, consistent)
             uplink_bytes += bytes_up
             uplink_time_s += t_s
@@ -219,6 +254,20 @@ def run(cfg: Config):
             # Downlink: account broadcast of the new global to delivered clients
             bytes_down = sum(t.numel() * t.element_size() for t in global_model.state_dict().values())
             downlink_bytes += bytes_down * len(delivered_ids)
+            
+            # All clients who successfully participated must receive the new global model
+            current_time = time.time()
+            for cid in delivered_ids:
+                # Create a dummy message representing the global model download
+                msg = Message(
+                    msg_type="global_model",
+                    sender=-1, # -1 implies server
+                    receiver=cid,
+                    payload=None,
+                    timestamp=current_time,
+                    size_bytes=bytes_down
+                )
+                net.devices[cid].receive(msg)
 
             if cfg.disturbances.enabled:
                 for cid in delivered_ids:

@@ -267,9 +267,20 @@ class SimNetwork:
             return (None, 0.0)
         return (best_path, best_cost)
 
-    # === UPDATED === Use disturbance-aware online check when sampling
-    def sample_active_clients(self, k: int) -> List[int]:
-        candidates = [d.id for d in self.devices.values() if self.is_device_online(d.id)]
-        if len(candidates) <= k:
-            return candidates
-        return self.rng.sample(candidates, k)
+    # Adaptive Sampling
+    def sample_active_clients(self, k: int, smart_sampling: bool = False) -> List[int]:
+        # 1. Get all online device objects (not just IDs)
+        candidates = [d for d in self.devices.values() if self.is_device_online(d.id)]
+        
+        if smart_sampling:
+            # Sort by energy (highest first) to minimize "dropped_low_battery" events.
+            # This ensures we pick nodes most likely to survive the round.
+            candidates.sort(key=lambda d: (d.energy, len(d.neighbors)), reverse=True)
+            selected = candidates[:k]
+            return [d.id for d in selected]
+
+        # 2. Default Random Sampling (Legacy/Naive behavior)
+        candidate_ids = [d.id for d in candidates]
+        if len(candidate_ids) <= k:
+            return candidate_ids
+        return self.rng.sample(candidate_ids, k)

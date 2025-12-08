@@ -1,12 +1,12 @@
 network:
-  topology: erdos_renyi
+  topology: barabasi
   n_devices: 100
   er_probability: 0.1
   ensure_connected: true
   # Link attribute ranges used when building the graph
   latency_ms: [5.0, 50.0]
   bandwidth_mbps: [5.0, 25.0]
-  graph_path: runs/1762526503_er_emnist_aggressive_dropout/network/adjacency.csv  # runs/<timestamp>_baseline/adjacency.csv
+  graph_path: runs/1764582806_m3_naive_test_13/network/adjacency.csv  # runs/<timestamp>_baseline/adjacency.csv
 
 battery:
   initial_energy: 100.0
@@ -22,7 +22,7 @@ training:
   local_epochs: 1
   batch_size: 64
   lr: 0.01
-  seed: 42
+  seed: 77
   device: cuda   # or "cpu"
 
 dataset:
@@ -33,7 +33,7 @@ dataset:
 
 run:
   out_dir: runs
-  run_name: m3_normal_test_13
+  run_name: m3_normal_er_seed_test_15
   notes: "ER + EMNIST quick run with disturbances layer enabled"
   export_network: true   # set false to skip graph PNG/layout on big graphs
 
@@ -58,7 +58,7 @@ disturbances:
   gateways: null
   max_gateway_count: 3
 
-  routing_mode: "dynamic"
+  routing_mode: "naive"
 
   # Redraw disturbances each round (stateless)
   reset_each_round: true

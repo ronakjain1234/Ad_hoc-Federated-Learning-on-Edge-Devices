@@ -12,8 +12,6 @@ from .fedavg import fedavg, train_one_client, evaluate, weighted_fedavg
 from .metrics import MetricsLogger
 from .netstats import compute_metrics, export_tables, draw_graph
 
-from .data.cifar10 import load_cifar10_clients
-from .models.cnn_cifar import CIFAR10Small, CIFAR10LiteRes, ResNet20CIFAR
 from .disturbances import DisturbanceManager
 from .device import Message
 import numpy as np
@@ -72,18 +70,10 @@ def run(cfg: Config):
     })
 
     # Data
-    if cfg.dataset.source == "cifar10":
-        # Use n_devices to define how many clients to create so mapping stays 1:1
-        cifar_root = getattr(cfg.dataset, "cifar10_root", "./data")
-        train_clients, test_ds = load_cifar10_clients(
-            root=cfg.dataset.cifar10_root,
-            n_clients=cfg.network.n_devices,
-            seed=cfg.training.seed,
-            split_mode="iid",     # change to "dirichlet" if you want non-iid later
-            alpha=10.0
-        )
-        num_classes = 10
-        global_model = ResNet20CIFAR(num_classes=num_classes)
+    if cfg.dataset.source == "leaf":
+        print("No longer supported: Use EMNIST")
+    elif cfg.dataset.source == "cifar10":
+        print("No longer supported: Use EMNIST")
     else:
         # Fallback: EMNIST "byclass" via torchvision (optional dev-only)
         from torchvision import datasets, transforms

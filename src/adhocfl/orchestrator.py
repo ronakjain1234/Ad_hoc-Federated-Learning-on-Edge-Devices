@@ -81,7 +81,6 @@ def run(cfg: Config):
         train = datasets.EMNIST(root="./data", split="byclass", train=True, download=True, transform=transform)
         test = datasets.EMNIST(root="./data", split="byclass", train=False, download=True, transform=transform)
         
-        from .data.femnist import FEMNISTClientDataset
         train_clients = {}
         num_classes = 62
         

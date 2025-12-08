@@ -71,9 +71,9 @@ def run(cfg: Config):
 
     # Data
     if cfg.dataset.source == "leaf":
-        print("No longer supported: Use EMNIST")
+        print("No longer supported. Use 'emnist' as dataset parameter.")
     elif cfg.dataset.source == "cifar10":
-        print("No longer supported: Use EMNIST")
+        print("No longer supported. Use 'emnist' as dataset parameter.")
     else:
         # Fallback: EMNIST "byclass" via torchvision (optional dev-only)
         from torchvision import datasets, transforms

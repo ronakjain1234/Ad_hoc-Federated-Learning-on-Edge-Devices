@@ -114,7 +114,7 @@ The behavior of the simulation is defined in "configs/disturbances.yaml". Below 
 
 6. OUTPUTS
 ----------------------------------------------------------------
-Results are generated in the "runs/<timestamp>_<name>/" directory:
+The simulation can take 1-2 hours to finish running. Results are generated in the "runs/<timestamp>_<name>/" directory:
 
 - eval_metrics.csv: A simple CSV file containing the "round" number and global test "accuracy" (0.0-1.0).
 - Console Output: Displays real-time client progress per round.

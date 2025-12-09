@@ -7,27 +7,9 @@ class MetricsLogger:
         os.makedirs(self.out_dir, exist_ok=True)
 
         # Paths
-        self.train_csv = os.path.join(self.out_dir, "train_metrics.csv")
         self.eval_csv  = os.path.join(self.out_dir, "eval_metrics.csv")
 
-        # for compatibility with earlier code that referred to 'train_path'
-        self.train_path = self.train_csv
-
         # Headers
-        self.train_header = [
-            "round",
-            "selected_clients",
-            "delivered_clients",
-            "dropped_offline",
-            "dropped_low_battery",
-            "dropped_partition",
-            "dropped_packet_loss",
-            "dropped_timeout",
-            "bytes_sent",
-            "bytes_received",
-            "uplink_time_s",
-            "downlink_time_s",
-        ]
         self.eval_header = ["round", "accuracy"]
 
         # Do NOT prewrite any header rows here; _write_csv handles that per file.

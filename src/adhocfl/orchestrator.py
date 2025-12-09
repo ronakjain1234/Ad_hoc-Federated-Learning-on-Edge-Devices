@@ -161,11 +161,6 @@ def run(cfg: Config):
 
         # Round accumulators
         delivered_ids: List[int] = []
-        dropped = {"offline": 0, "low_battery": 0, "partition": 0, "packet_loss": 0, "timeout": 0}
-        uplink_bytes = 0
-        downlink_bytes = 0
-        uplink_time_s = 0.0
-        downlink_time_s = 0.0
 
         client_updates = []
         client_weights = []
@@ -195,15 +190,12 @@ def run(cfg: Config):
                 will, path, t_s, reason = True, [cid], 0.0, "ok"
 
             if not will:
-                dropped[reason] = dropped.get(reason, 0) + 1
                 continue
 
             # The device "sends" the update. Target ID -1 implies server/gateway.
             net.devices[cid].send(to_id=-1, payload=None, size_bytes=bytes_up)
 
             # Count only delivered uplinks (simple, consistent)
-            uplink_bytes += bytes_up
-            uplink_time_s += t_s
             client_updates.append((sd, n))
             client_weights.append(n)
             delivered_ids.append(cid)
@@ -215,7 +207,6 @@ def run(cfg: Config):
 
             # Downlink: account broadcast of the new global to delivered clients
             bytes_down = sum(t.numel() * t.element_size() for t in global_model.state_dict().values())
-            downlink_bytes += bytes_down * len(delivered_ids)
             
             # All clients who successfully participated must receive the new global model
             current_time = time.time()
@@ -242,30 +233,14 @@ def run(cfg: Config):
                             source=cid, gateways=None, bytes_to_send=bytes_down
                         )
                     if path is not None:
-                        downlink_time_s += t_s
+                        pass
 
         # 5) Background device behavior (unchanged)
         for d in net.devices.values():
             d.idle()
             d.recharge()
 
-        # 6) Log round metrics (uses the expanded header from step 4)
-        metrics.log_train(
-            round=rnd,
-            selected_clients=len(selected_ids),
-            delivered_clients=len(delivered_ids),
-            dropped_offline=dropped["offline"],
-            dropped_low_battery=dropped["low_battery"],
-            dropped_partition=dropped["partition"],
-            dropped_packet_loss=dropped["packet_loss"],
-            dropped_timeout=dropped["timeout"],
-            bytes_sent=uplink_bytes,
-            bytes_received=downlink_bytes,
-            uplink_time_s=uplink_time_s,
-            downlink_time_s=downlink_time_s,
-        )
-
-        # 7) Evaluate as before
+        # 6) Evaluate as before
         acc = evaluate(global_model, test_ds, cfg.training.batch_size, device)
         metrics.log_eval(round=rnd, accuracy=acc)
 
